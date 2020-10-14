@@ -19,4 +19,6 @@ private:
     void handleClient(int client_fd);
     void handleRequest(int client_fd);
     void parseRequest(char* buffer, int length);
+
+    static void signalHandler(int signum);
 };

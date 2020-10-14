@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <string>
 #include <cstring>
+#include <csignal>
+#include <sys/wait.h>
 
 
 Server::Server(int port) {
@@ -34,6 +36,15 @@ void Server::serve() {
         exit(EXIT_FAILURE);
     }
 
+    // Signal handler to prevent zombies and using up all resources
+    // signal(SIGCHLD, Server::signalHandler);
+
+    struct sigaction sa;
+    sa.sa_handler = Server::signalHandler;
+    sigemptyset(&sa.sa_mask);
+    sigaction(SIGCHLD, &sa, 0);
+    // sigaction()
+
     while(true) {
         // std::cout << "Waiting for new connection\n";
 
@@ -42,6 +53,9 @@ void Server::serve() {
         socklen_t addrlen = sizeof(client_addr);
 
         if ((client_fd = accept(fd, reinterpret_cast<sockaddr*>(&client_addr), &addrlen)) < 0) {
+            // Child termination signal can interrupt accept call, so try again if that happens
+            if (errno == EINTR)
+                continue;
             std::cerr << "Failed to accept client connection" << strerror(errno);
             exit(EXIT_FAILURE);
         }
@@ -49,6 +63,25 @@ void Server::serve() {
         handleClient(client_fd);
         close(client_fd);
     }
+}
+
+void Server::signalHandler(int signum) {
+    int status, cpid;
+
+    while (true) {
+        cpid = waitpid(-1, &status, WNOHANG);
+        if (cpid<0) {
+            if (errno!=ECHILD)
+                std::cerr << "Error while waiting for child process: " << strerror(errno) << std::endl;
+
+            return;
+        }
+        else if (cpid==0)
+            break;          // No more zombies
+    }
+
+    // cpid = wait(&status);
+    // std::cout << "Child " << cpid << " exited with status " << status << std::endl;
 }
 
 void Server::handleClient(int client_fd) {

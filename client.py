@@ -21,9 +21,10 @@ def main(max_clients, max_conns):
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.connect(SERVER_ADDRESS)
                 sock.sendall(REQUEST)
+                sock.close()
                 socks.append(sock)
                 print(connection_num)
-                os._exit(0)
+            os._exit(0)
 
 
 if __name__ == '__main__':
