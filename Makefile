@@ -1,16 +1,16 @@
 CXX = g++
 CFLAGS = -Wall -Wextra
 
-SERVER_SRC = server.cpp server.hpp
+SERVER_SRC = http_server.cpp server.cpp server.hpp
 CLIENT_SRC = client.cpp
 
-all: server client
+all: http_server client
 
-server: $(SERVER_SRC)
+http_server: $(SERVER_SRC)
 	$(CXX) $(CFLAGS) -o $@ $(SERVER_SRC)
 
 client: $(CLIENT_SRC)
 	$(CXX) $(CFLAGS) -o $@ $(CLIENT_SRC)
 
 clean:
-	rm -f server client
+	rm -f http_server client
