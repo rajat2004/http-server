@@ -1,16 +1,14 @@
 CXX = g++
-CFLAGS = -Wall -Wextra
+CFLAGS = -O2 -std=c++17 -Wall -Wextra
+LDFLAGS = -lpthread
 
-SERVER_SRC = http_server.cpp server.cpp server.hpp
-CLIENT_SRC = client.cpp
+all: server client
 
-all: http_server client
+server: server_main.cpp server.cpp server.hpp
+	$(CXX) $(CFLAGS) -o $@ $^
 
-http_server: $(SERVER_SRC)
-	$(CXX) $(CFLAGS) -o $@ $(SERVER_SRC)
-
-client: $(CLIENT_SRC)
-	$(CXX) $(CFLAGS) -o $@ $(CLIENT_SRC)
+client: client.cpp
+	$(CXX) $(CFLAGS) -o $@ $^
 
 clean:
-	rm -f http_server client
+	rm -f server client
