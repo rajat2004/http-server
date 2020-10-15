@@ -5,9 +5,13 @@
 #include <cstring>
 #include <csignal>
 #include <sys/wait.h>
+#include <algorithm>
 
+using namespace HTTPServer;
 
-Server::Server(int port) {
+Server::Server(int port, int n_threads)
+: pool(n_threads)
+{
     if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         std::cerr << "Cannot create socket: " << strerror(errno);
         exit(EXIT_FAILURE);
@@ -30,20 +34,15 @@ Server::Server(int port) {
     }
 }
 
+Server::~Server() {
+    close(fd);
+}
+
 void Server::serve() {
     if (listen(fd, MAX_CONNECTIONS) < 0) {
         perror("Failed to listen");
         exit(EXIT_FAILURE);
     }
-
-    // Signal handler to prevent zombies and using up all resources
-    // signal(SIGCHLD, Server::signalHandler);
-
-    struct sigaction sa;
-    sa.sa_handler = Server::signalHandler;
-    sigemptyset(&sa.sa_mask);
-    sigaction(SIGCHLD, &sa, 0);
-    // sigaction()
 
     while(true) {
         // std::cout << "Waiting for new connection\n";
@@ -60,64 +59,43 @@ void Server::serve() {
             exit(EXIT_FAILURE);
         }
 
-        handleClient(client_fd);
-        close(client_fd);
+        pool.enqueue([this](int client_fd) {
+            HTTPServer::Server::handleClient(client_fd);
+        }, client_fd);
     }
-}
-
-void Server::signalHandler(int signum) {
-    int status, cpid;
-
-    while (true) {
-        cpid = waitpid(-1, &status, WNOHANG);
-        if (cpid<0) {
-            if (errno!=ECHILD)
-                std::cerr << "Error while waiting for child process: " << strerror(errno) << std::endl;
-
-            return;
-        }
-        else if (cpid==0)
-            break;          // No more zombies
-    }
-
-    // cpid = wait(&status);
-    // std::cout << "Child " << cpid << " exited with status " << status << std::endl;
 }
 
 void Server::handleClient(int client_fd) {
-    // New child to handle the client
-    int pid = fork();
-
-    if (pid<0) {
-        perror("Forking error!");
-        return;
-    }
-
-    // Child
-    if (pid==0) {
-        // Close server socket copy, we don't need it
-        close(fd);
-        handleRequest(client_fd);
-        close(client_fd);
-        exit(EXIT_SUCCESS); // Child finishes its work
-    }
-    else {
-        close(client_fd);   // Again, no need of this in parent
-        num_clients++;
-        std::cout << num_clients << std::endl;
-    }
-
+    handleRequests(client_fd);
+    close(client_fd);
 }
 
-void Server::handleRequest(int client_fd) {
-    int recv_length = 0;
+void Server::handleRequests(int client_fd) {
+    int recv_length=0;
     char buffer[BUFFER_SIZE];
 
-    recv_length = read(client_fd, buffer, BUFFER_SIZE);
-    parseRequest(buffer, recv_length);
+    std::string hello = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
+    std::string term = "\r\n\r\n";
 
-    std::string hello = "HTTP/1.1 200 OK\n\nHello, World!";
-    write(client_fd, hello.c_str(), hello.length());
+    while(true) {
+        recv_length = ::read(client_fd, buffer, BUFFER_SIZE);
+        if (recv_length==0)
+            break;
+        else if (recv_length==-1) {
+            if (errno==EINTR || errno==EAGAIN)
+                continue;
+            else {
+                perror("Read error!");
+                return;
+            }
+        }
+
+        parseRequest(buffer, recv_length);
+        write(client_fd, hello.c_str(), hello.length());
+
+        if (std::search(buffer, buffer+BUFFER_SIZE, term.begin(), term.end()) != buffer+BUFFER_SIZE)
+            break;
+    }
 }
 
 void Server::parseRequest(char* buffer, int length) {
