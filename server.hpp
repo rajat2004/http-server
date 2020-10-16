@@ -1,7 +1,6 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-// #include "thread_pool.hpp"
 #include "handler.hpp"
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -29,10 +28,6 @@ private:
     int num_clients = 0;
 
     std::unique_ptr<Handler> handlers[MAX_EVENTS];
-
-    void handleClient(int client_fd);
-    void handleRequests(int client_fd);
-    void parseRequest(char* buffer, int length);
 };
 
 } // namespace HTTPServer

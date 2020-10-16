@@ -104,7 +104,7 @@ void Server::serve() {
 
                 // Add to epoll
                 epoll_ctl(epfd, EPOLL_CTL_ADD, client_fd, &ev);
-            }
+            }   // Adding new client finished
             else {
                 StatusFD status;
                 epoll_event ev{0};
@@ -136,45 +136,10 @@ void Server::serve() {
                 else if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev) < 0) {
                     perror("epoll EPOLL_CTL_MOD");
                 }
-            }
-        }
-    }
-}
+            }   // Handling existing client
 
-void Server::handleClient(int client_fd) {
-    handleRequests(client_fd);
-    // close(client_fd);
-}
+        }   // Complete going through all file descriptors
 
-void Server::handleRequests(int client_fd) {
-    int recv_length=0;
-    char buffer[BUFFER_SIZE];
+    }   // Infinite loop ends (Well, actually not)
 
-    std::string hello = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
-    std::string term = "\r\n\r\n";
-
-    while(true) {
-        recv_length = ::read(client_fd, buffer, BUFFER_SIZE);
-        if (recv_length==0)
-            break;
-        else if (recv_length==-1) {
-            if (errno==EINTR || errno==EAGAIN)
-                continue;
-            else {
-                perror("Read error!");
-                return;
-            }
-        }
-
-        parseRequest(buffer, recv_length);
-        write(client_fd, hello.c_str(), hello.length());
-
-        if (std::search(buffer, buffer+BUFFER_SIZE, term.begin(), term.end()) != buffer+BUFFER_SIZE)
-            break;
-    }
-}
-
-void Server::parseRequest(char* buffer, int length) {
-    // Nothing here right now
-    // std::cout << length << "\n" << buffer << std::endl;
 }
