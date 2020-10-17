@@ -1,5 +1,5 @@
 CXX = g++
-CFLAGS = -O2 -std=c++17 -Wall -Wextra -Wno-unused -pthread
+CFLAGS = -O2 -std=c++17 -Wall -Wextra -Wno-unused
 
 all: server client
 
@@ -13,7 +13,7 @@ handler.o: handler.cpp handler.hpp
 	$(CXX) $(CFLAGS) -c -o $@ handler.cpp
 
 client: client.cpp
-	$(CXX) $(CFLAGS) -o $@ $^
+	$(CXX) $(CFLAGS) -pthread -o $@ $^
 
 clean:
 	rm -f *.o server client

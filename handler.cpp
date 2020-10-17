@@ -73,6 +73,8 @@ StatusFD Handler::sendResponse()
 
 void Handler::parseRequest()
 {
+    // std::cout << read_req << std::endl;
+
     // Only parsing the first line for now
     // TODO: Parse all lines
     std::string line_term = "\r\n";
@@ -107,6 +109,8 @@ void Handler::createResponse()
         path.append("index.html");
     else
         path.append(req_headers["Path"]);
+
+    // std::cout << path << std::endl;
 
     // Check if already in cache
     if (file_cache.find(path)!=file_cache.end()) {
