@@ -1,5 +1,5 @@
 CXX = g++
-CFLAGS = -O2 -std=c++17 -Wall -Wextra -pthread
+CFLAGS = -O2 -std=c++17 -Wall -Wextra -Wno-unused -pthread
 
 all: server client
 

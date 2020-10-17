@@ -12,6 +12,8 @@ const int BUFFER_SIZE = 4096;
 const int CLIENTS = 1000;
 const int REQ_PER_CLIENT = 100;
 
+static const std::string req = "GET / HTTP/1.1\nHost: localhost:8080\r\n\r\n";
+
 using namespace std;
 using namespace chrono;
 
@@ -64,11 +66,10 @@ void createClient(int id, int reqs_per_client) {
         exit(EXIT_FAILURE);
     }
 
-    std::string hello = "Hello World from client " + std::to_string(id);
     char buffer[BUFFER_SIZE];
 
     for (int i=0; i<reqs_per_client; i++) {
-        send(client_fd, hello.c_str(), hello.length(), 0);
+        send(client_fd, req.c_str(), req.length(), 0);
         // std::cout << "Sent message from client " << id << "\n";
 
         int recv_length = read(client_fd, buffer, BUFFER_SIZE);

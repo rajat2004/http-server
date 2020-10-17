@@ -4,6 +4,7 @@
 #include <string>
 #include <cstring>
 #include <csignal>
+#include <fcntl.h>
 #include <sys/wait.h>
 #include <sys/epoll.h>
 #include <algorithm>
@@ -50,8 +51,8 @@ void Server::serve() {
 
     // Add listening socket
     static epoll_event accept_event;
-    accept_event.events = EPOLLIN;    // Monitor for new data
-    accept_event.data.fd = listen_fd;        // Store the main socket for future use
+    accept_event.events = EPOLLIN;      // Monitor for new data
+    accept_event.data.fd = listen_fd;   // Store the main socket for future use
 
     // Add fd to be monitored
     if (epoll_ctl(epfd, EPOLL_CTL_ADD, listen_fd, &accept_event) < 0) {
@@ -96,7 +97,7 @@ void Server::serve() {
                 // Create Handler for client
                 handlers[client_fd] = std::make_unique<Handler>(Handler(client_fd));
 
-                epoll_event ev{0};
+                epoll_event ev;
 
                 // Add new client to epoll
                 ev.events = EPOLLOUT;
@@ -105,9 +106,10 @@ void Server::serve() {
                 // Add to epoll
                 epoll_ctl(epfd, EPOLL_CTL_ADD, client_fd, &ev);
             }   // Adding new client finished
+            // Existing client ready
             else {
                 StatusFD status;
-                epoll_event ev{0};
+                epoll_event ev{0,0};
 
                 ev.data.fd = fd;
 
@@ -121,7 +123,6 @@ void Server::serve() {
                     status = handlers[fd]->sendResponse();
                 }
 
-                // ev.data.fd = client_fd;
                 if (status.want_read)
                     ev.events |= EPOLLIN;
                 if (status.want_write)
@@ -136,7 +137,7 @@ void Server::serve() {
                 else if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev) < 0) {
                     perror("epoll EPOLL_CTL_MOD");
                 }
-            }   // Handling existing client
+            }   // Handling existing client finished
 
         }   // Complete going through all file descriptors
 

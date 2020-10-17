@@ -1,17 +1,8 @@
 #ifndef HANDLER_H
 #define HANDLER_H
 
-#include <errno.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <sys/sendfile.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-#include <iostream>
-#include <sstream>
 #include <string>
+#include <unordered_map>
 
 const int BUFFER_SIZE = 4096;
 
@@ -43,15 +34,20 @@ public:
     StatusFD sendResponse();
 
 private:
-    bool getRequest();
+    // TODO: Move to separate parser class, with caching as well
+    void parseRequest();
     void createResponse();
 
     int client;
-    std::string read;
+    std::string read_req, response;
     char buffer[BUFFER_SIZE];
+    std::unordered_map<std::string, std::string> req_headers;
+
+    // Cache for files, might be better to make this a single cache for all handlers
+    std::unordered_map<std::string, std::string> file_cache;
 };
 
 
-}   // HTTPServer
+}   // namespace HTTPServer
 
 #endif // HANDLER_H
