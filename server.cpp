@@ -91,7 +91,10 @@ void Server::handleRequests(int client_fd) {
         }
 
         parseRequest(buffer, recv_length);
-        write(client_fd, hello.c_str(), hello.length());
+        if (write(client_fd, hello.c_str(), hello.length()) < 0) {
+            perror("Write: ");
+            return;
+        }
 
         if (std::search(buffer, buffer+BUFFER_SIZE, term.begin(), term.end()) != buffer+BUFFER_SIZE)
             break;
